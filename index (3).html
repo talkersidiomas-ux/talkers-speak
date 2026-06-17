@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talkers Speak</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --coral:#D85A30;--coral-l:#FAECE7;--coral-d:#993C1D;
+  --teal:#1D9E75;--teal-l:#E1F5EE;--teal-d:#085041;
+  --purple:#534AB7;--purple-l:#EEEDFE;
+  --amber:#EF9F27;--amber-l:#FAEEDA;
+  --gray-bg:#F7F6F3;--gray-border:#E0DED8;
+  --text:#1a1a1a;--text2:#666;--text3:#999;
+  --white:#fff;--radius:12px;--radius-sm:8px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray-bg);color:var(--text);min-height:100vh}
+
+/* ── AUTH ── */
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.auth-box{background:var(--white);border-radius:var(--radius);padding:2rem;width:100%;max-width:360px;box-shadow:0 2px 16px rgba(0,0,0,.08)}
+.auth-logo{text-align:center;margin-bottom:1.5rem}
+.auth-logo-text{font-size:24px;font-weight:700;letter-spacing:3px;color:var(--coral)}
+.auth-logo-sub{font-size:12px;color:var(--text3);letter-spacing:1px;margin-top:2px}
+.auth-tab{display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--gray-border);border-radius:var(--radius-sm);overflow:hidden}
+.auth-tab button{flex:1;padding:8px;background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text2);transition:.2s}
+.auth-tab button.active{background:var(--coral);color:var(--white);font-weight:500}
+.auth-field{margin-bottom:1rem}
+.auth-field label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:500}
+.auth-field input{width:100%;padding:10px 12px;border:1px solid var(--gray-border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--white);outline:none;transition:.2s}
+.auth-field input:focus{border-color:var(--coral)}
+.auth-btn{width:100%;padding:12px;background:var(--coral);color:var(--white);border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;margin-top:.5rem;transition:.2s}
+.auth-btn:hover{background:var(--coral-d)}
+.auth-msg{font-size:12px;text-align:center;margin-top:.75rem;min-height:18px;color:#E24B4A}
+.auth-msg.ok{color:var(--teal)}
+
+/* ── APP SHELL ── */
+#app-screen{display:none;min-height:100vh;flex-direction:column}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-border);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar-logo{font-size:16px;font-weight:700;letter-spacing:2px;color:var(--coral)}
+.topbar-user{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.logout-btn{font-size:12px;color:var(--text3);background:none;border:1px solid var(--gray-border);border-radius:20px;padding:3px 10px;cursor:pointer}
+.logout-btn:hover{color:var(--coral);border-color:var(--coral)}
+
+.content{flex:1;padding:1rem;max-width:500px;margin:0 auto;width:100%}
+
+/* NAV */
+.nav{display:flex;gap:6px;margin-bottom:1rem}
+.nav-btn{flex:1;padding:8px 4px;border:1px solid var(--gray-border);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:11px;color:var(--text2);text-align:center;transition:.2s;line-height:1.3}
+.nav-btn .nav-icon{font-size:18px;margin-bottom:2px;display:block}
+.nav-btn.active{border-color:var(--coral);background:var(--coral-l);color:var(--coral-d);font-weight:500}
+
+/* SCREEN */
+.screen{display:none}.screen.active{display:block}
+
+/* PROGRESS BAR */
+.prog-wrap{margin-bottom:.75rem}
+.prog-label{font-size:11px;color:var(--text3);margin-bottom:4px;display:flex;justify-content:space-between}
+.prog-bar{height:4px;background:var(--gray-border);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--coral);border-radius:2px;transition:width .4s}
+
+/* CARD */
+.card{background:var(--white);border-radius:var(--radius);border:1px solid var(--gray-border);padding:1.25rem;margin-bottom:.75rem}
+
+/* FLASHCARDS */
+.fc-mode-toggle{display:flex;gap:6px;margin-bottom:.75rem;justify-content:center}
+.fc-mode-btn{padding:5px 14px;border:1px solid var(--gray-border);border-radius:20px;background:var(--white);font-size:12px;color:var(--text2);cursor:pointer;transition:.2s}
+.fc-mode-btn.active{border-color:var(--coral);background:var(--coral-l);color:var(--coral-d);font-weight:600}
+.fc-flip{min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;text-align:center;gap:.5rem;position:relative}
+.fc-sentence{font-size:19px;font-weight:500;line-height:1.6}
+.fc-blank{display:inline-block;border-bottom:2.5px solid var(--coral);min-width:72px;height:24px;vertical-align:bottom;margin:0 2px}
+.fc-blank-filled{display:inline-block;border-bottom:2.5px solid var(--teal);min-width:72px;height:24px;vertical-align:bottom;margin:0 2px;color:var(--teal);font-weight:700;padding:0 4px}
+.fc-reveal{font-size:20px;font-weight:700;color:var(--teal);opacity:0;transition:.3s}
+.fc-reveal.show{opacity:1}
+.fc-pt{font-size:13px;color:var(--text2);opacity:0;transition:.3s}
+.fc-pt.show{opacity:1}
+.fc-tap{font-size:12px;color:var(--text3);position:absolute;bottom:-.5rem}
+.audio-btn{background:none;border:1px solid var(--gray-border);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;margin-top:.5rem;transition:.2s}
+.audio-btn:hover{border-color:var(--coral);color:var(--coral)}
+.audio-btn svg{width:14px;height:14px;fill:currentColor}
+/* MODE: DRAG */
+.fc-interact{margin-top:.75rem;display:none}
+.fc-interact.show{display:block}
+.fc-drag-area{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:.75rem;font-size:17px;font-weight:500;line-height:2}
+.fc-drop-zone{display:inline-flex;align-items:center;justify-content:center;border-bottom:2.5px solid var(--coral);min-width:80px;height:32px;margin:0 4px;vertical-align:middle;transition:.2s;border-radius:4px 4px 0 0;padding:0 6px}
+.fc-drop-zone.over{background:var(--coral-l);border-color:var(--coral-d)}
+.fc-drop-zone.correct{border-color:var(--teal);background:var(--teal-l);color:var(--teal-d);font-weight:700}
+.fc-drop-zone.wrong{border-color:#E24B4A;background:#FCEBEB;color:#501313;font-weight:700}
+.fc-word-bank{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:.75rem}
+.fc-word{padding:7px 14px;border:1px solid var(--gray-border);border-radius:20px;background:var(--white);cursor:grab;font-size:14px;font-weight:500;color:var(--text);transition:.2s;user-select:none}
+.fc-word:hover{border-color:var(--coral);background:var(--coral-l);color:var(--coral-d)}
+.fc-word.dragging{opacity:.4}
+.fc-word.used{opacity:.25;pointer-events:none}
+/* MODE: TYPE */
+.fc-type-wrap{display:flex;gap:8px;align-items:center;margin-bottom:.75rem}
+.fc-type-input{flex:1;padding:9px 12px;border:1px solid var(--gray-border);border-radius:var(--radius-sm);font-size:15px;color:var(--text);outline:none;transition:.2s;background:var(--white)}
+.fc-type-input:focus{border-color:var(--coral)}
+.fc-type-input.correct{border-color:var(--teal);background:var(--teal-l);color:var(--teal-d)}
+.fc-type-input.wrong{border-color:#E24B4A;background:#FCEBEB;color:#501313}
+.fc-type-btn{padding:9px 16px;background:var(--coral);color:var(--white);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.2s}
+.fc-type-btn:hover{background:var(--coral-d)}
+/* FEEDBACK */
+.fc-answer-fb{font-size:13px;padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:.5rem;display:none}
+.fc-answer-fb.show{display:block}
+.fc-answer-fb.ok{background:var(--teal-l);color:var(--teal-d)}
+.fc-answer-fb.fail{background:#FCEBEB;color:#501313}
+.fc-next-btn{width:100%;padding:11px;border-radius:var(--radius-sm);border:none;background:var(--coral);color:var(--white);cursor:pointer;font-size:14px;font-weight:600;display:none;transition:.2s}
+.fc-next-btn:hover{background:var(--coral-d)}
+.fc-next-btn.show{display:block}
+
+/* EXERCISES */
+.ex-q{font-size:15px;font-weight:500;line-height:1.5;margin-bottom:1rem}
+.ex-opts{display:flex;flex-direction:column;gap:7px}
+.ex-opt{padding:11px 14px;border:1px solid var(--gray-border);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:14px;text-align:left;transition:.2s;color:var(--text);width:100%}
+.ex-opt:hover:not(:disabled){border-color:var(--coral);background:var(--coral-l)}
+.ex-opt.correct{border-color:var(--teal)!important;background:var(--teal-l)!important;color:var(--teal-d)!important}
+.ex-opt.wrong{border-color:#E24B4A!important;background:#FCEBEB!important;color:#501313!important}
+.ex-fb{margin-top:.75rem;padding:.75rem 1rem;border-radius:var(--radius-sm);font-size:13px;line-height:1.5;display:none}
+.ex-fb.show{display:block}
+.ex-fb.ok{background:var(--teal-l);color:var(--teal-d)}
+.ex-fb.fail{background:#FCEBEB;color:#501313}
+.ex-next{width:100%;margin-top:.75rem;padding:11px;border-radius:var(--radius-sm);border:none;background:var(--coral);color:var(--white);cursor:pointer;font-size:14px;font-weight:600;display:none;transition:.2s}
+.ex-next:hover{background:var(--coral-d)}
+.ex-next.show{display:block}
+
+/* SPEAKING - AI correction */
+.sp-task-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600;margin-bottom:6px}
+.sp-task-text{font-size:15px;font-weight:500;line-height:1.5;margin-bottom:.25rem}
+.sp-ctx{font-size:13px;color:var(--text2);line-height:1.5}
+.sp-textarea{width:100%;padding:10px 12px;border:1px solid var(--gray-border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;min-height:80px;resize:none;color:var(--text);background:var(--white);outline:none;transition:.2s}
+.sp-textarea:focus{border-color:var(--coral)}
+.sp-submit{width:100%;margin-top:8px;padding:11px;background:var(--coral);color:var(--white);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.sp-submit:disabled{opacity:.5;cursor:not-allowed}
+.sp-submit:hover:not(:disabled){background:var(--coral-d)}
+.sp-aifb{margin-top:.75rem;padding:1rem;border-radius:var(--radius);border:1px solid var(--gray-border);display:none;font-size:13px;line-height:1.6}
+.sp-aifb.show{display:block}
+.sp-aifb.good{border-color:var(--teal);background:var(--teal-l)}
+.sp-aifb.mid{border-color:var(--amber);background:var(--amber-l)}
+.sp-aifb.bad{border-color:#E24B4A;background:#FCEBEB}
+.sp-pill{display:inline-block;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;margin-bottom:8px}
+.sp-pill.high{background:var(--teal);color:var(--white)}
+.sp-pill.mid{background:var(--amber);color:var(--white)}
+.sp-pill.low{background:#E24B4A;color:var(--white)}
+.sp-section{margin-bottom:.5rem}
+.sp-section-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:3px;text-transform:uppercase}
+.sp-section-lbl.pt{color:var(--teal-d)}
+.sp-section-lbl.en{color:var(--purple)}
+.sp-corr{background:rgba(255,255,255,.7);border-radius:var(--radius-sm);padding:7px 10px;margin:.5rem 0;font-style:italic;font-size:13px}
+.sp-corr-lbl{font-size:10px;color:var(--text2);margin-bottom:2px;font-weight:600}
+.sp-nav{display:flex;justify-content:space-between;align-items:center;margin-top:.75rem}
+.sp-nav-btn{padding:8px 14px;border:1px solid var(--gray-border);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:13px;color:var(--text2);transition:.2s}
+.sp-nav-btn:hover{border-color:var(--coral);color:var(--coral)}
+.sp-dots{display:flex;gap:5px;align-items:center}
+.sp-dot{width:8px;height:8px;border-radius:50%;background:var(--gray-border);transition:.2s}
+.sp-dot.cur{background:var(--coral);transform:scale(1.2)}
+.sp-dot.hi{background:var(--teal)}
+.sp-dot.mi{background:var(--amber)}
+.sp-dot.lo{background:#E24B4A}
+
+/* SHADOWING */
+.sh-phrase{font-size:20px;font-weight:600;text-align:center;padding:1.5rem 1rem;line-height:1.5;color:var(--text)}
+.sh-pt{font-size:13px;color:var(--text2);text-align:center;margin-top:.25rem}
+.sh-listen-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--purple-l);color:var(--purple);border:1px solid #AFA9EC;border-radius:var(--radius-sm);cursor:pointer;font-size:15px;font-weight:600;margin-bottom:.75rem;transition:.2s}
+.sh-listen-btn:hover{background:#CECBF6}
+.sh-record-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--coral-l);color:var(--coral);border:1px solid #F0997B;border-radius:var(--radius-sm);cursor:pointer;font-size:15px;font-weight:600;margin-bottom:.75rem;transition:.2s}
+.sh-record-btn.recording{background:var(--coral);color:var(--white);border-color:var(--coral)}
+.sh-record-btn:hover:not(.recording){background:#F5C4B3}
+.sh-tip{font-size:12px;color:var(--text3);text-align:center;line-height:1.5}
+.sh-check-btn{width:100%;padding:11px;background:var(--teal);color:var(--white);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;display:none;margin-top:.5rem;transition:.2s}
+.sh-check-btn.show{display:block}
+.sh-check-btn:hover{background:var(--teal-d)}
+.sh-transcript{background:var(--gray-bg);border-radius:var(--radius-sm);padding:.75rem;font-size:13px;color:var(--text2);margin-top:.5rem;display:none;border:1px solid var(--gray-border)}
+.sh-transcript.show{display:block}
+
+/* SCORE RESULT */
+.result-box{text-align:center;padding:2rem 1rem}
+.result-num{font-size:52px;font-weight:700;color:var(--teal)}
+.result-label{font-size:14px;color:var(--text2);margin:.25rem 0 1rem}
+.restart-btn{padding:10px 24px;border:1px solid var(--coral);background:transparent;color:var(--coral);border-radius:var(--radius-sm);cursor:pointer;font-size:14px;font-weight:500;transition:.2s}
+.restart-btn:hover{background:var(--coral-l)}
+
+/* LOADING */
+.loading{text-align:center;padding:2rem;color:var(--text3);font-size:13px;font-style:italic}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-text">TALKERS SPEAK</div>
+      <div class="auth-logo-sub">ENGLISH FOR BEGINNERS · A1–A2</div>
+    </div>
+    <div class="auth-tab">
+      <button class="active" onclick="switchTab('login')">Entrar</button>
+      <button onclick="switchTab('register')">Cadastrar</button>
+    </div>
+    <div id="login-form">
+      <div class="auth-field"><label>Email</label><input type="email" id="l-email" placeholder="seu@email.com"></div>
+      <div class="auth-field"><label>Senha</label><input type="password" id="l-pass" placeholder="••••••"></div>
+      <button class="auth-btn" onclick="doLogin()">Entrar</button>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="auth-field"><label>Nome completo</label><input type="text" id="r-name" placeholder="Seu nome"></div>
+      <div class="auth-field"><label>Email</label><input type="email" id="r-email" placeholder="seu@email.com"></div>
+      <div class="auth-field"><label>Senha</label><input type="password" id="r-pass" placeholder="mínimo 6 caracteres"></div>
+      <button class="auth-btn" onclick="doRegister()">Criar conta</button>
+    </div>
+    <div class="auth-msg" id="auth-msg"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" style="display:none;flex-direction:column;min-height:100vh">
+  <div class="topbar">
+    <div class="topbar-logo">TALKERS SPEAK</div>
+    <div class="topbar-user">
+      <span id="user-name-display"></span>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="nav">
+      <button class="nav-btn active" onclick="showScreen('fc')" id="nav-fc"><span class="nav-icon">🃏</span>Flashcards</button>
+      <button class="nav-btn" onclick="showScreen('ex')" id="nav-ex"><span class="nav-icon">📝</span>Exercícios</button>
+      <button class="nav-btn" onclick="showScreen('sp')" id="nav-sp"><span class="nav-icon">🗣️</span>Speaking</button>
+      <button class="nav-btn" onclick="showScreen('sh')" id="nav-sh"><span class="nav-icon">🔁</span>Repetição</button>
+    </div>
+
+    <!-- FLASHCARDS -->
+    <div class="screen active" id="screen-fc">
+      <div class="prog-wrap">
+        <div class="prog-label"><span id="fc-prog-txt">Carta 1 de 12</span><span id="fc-score-txt">✓ 0 ✗ 0</span></div>
+        <div class="prog-bar"><div class="prog-fill" id="fc-prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="fc-mode-toggle">
+        <button class="fc-mode-btn active" id="mode-drag" onclick="setFCMode('drag')">🔀 Arrastar</button>
+        <button class="fc-mode-btn" id="mode-type" onclick="setFCMode('type')">⌨️ Digitar</button>
+      </div>
+      <div class="card">
+        <div class="fc-flip" id="fc-flip" onclick="revealFC()">
+          <div class="fc-sentence" id="fc-sentence"></div>
+          <div class="fc-pt" id="fc-pt"></div>
+          <div class="fc-tap" id="fc-tap">Toque para revelar</div>
+        </div>
+        <!-- INTERACTION AREA (shown after reveal) -->
+        <div class="fc-interact" id="fc-interact">
+          <button class="audio-btn" id="fc-audio" onclick="speakWord()" style="margin:0 auto .75rem">
+            <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            Ouvir pronúncia
+          </button>
+          <!-- DRAG MODE -->
+          <div id="fc-drag-mode">
+            <div class="fc-drag-area" id="fc-drag-sentence"></div>
+            <div class="fc-word-bank" id="fc-word-bank"></div>
+          </div>
+          <!-- TYPE MODE -->
+          <div id="fc-type-mode" style="display:none">
+            <div class="fc-type-wrap">
+              <input class="fc-type-input" id="fc-type-input" placeholder="Digite a palavra..." onkeydown="if(event.key==='Enter')checkTypeFC()">
+              <button class="fc-type-btn" onclick="checkTypeFC()">OK</button>
+            </div>
+          </div>
+          <div class="fc-answer-fb" id="fc-answer-fb"></div>
+          <button class="fc-next-btn" id="fc-next-btn" onclick="nextFC()">Próxima carta →</button>
+        </div>
+      </div>
+      <div id="fc-result" style="display:none"></div>
+    </div>
+
+    <!-- EXERCISES -->
+    <div class="screen" id="screen-ex">
+      <div class="prog-wrap">
+        <div class="prog-label"><span id="ex-prog-txt">Pergunta 1 de 10</span><span></span></div>
+        <div class="prog-bar"><div class="prog-fill" id="ex-prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="card" id="ex-card">
+        <div class="ex-q" id="ex-q"></div>
+        <div class="ex-opts" id="ex-opts"></div>
+        <div class="ex-fb" id="ex-fb"></div>
+        <button class="ex-next" id="ex-next" onclick="nextEX()">Próxima</button>
+      </div>
+      <div id="ex-result" style="display:none"></div>
+    </div>
+
+    <!-- SPEAKING -->
+    <div class="screen" id="screen-sp">
+      <div class="prog-wrap">
+        <div class="prog-label"><span id="sp-prog-txt">Situação 1 de 6</span><span></span></div>
+        <div class="prog-bar"><div class="prog-fill" id="sp-prog-fill" style="width:8%"></div></div>
+      </div>
+      <div class="card">
+        <div class="sp-task-lbl">Situação</div>
+        <div class="sp-task-text" id="sp-task"></div>
+        <div class="sp-ctx" id="sp-ctx"></div>
+      </div>
+      <div class="card" style="padding-top:1rem">
+        <textarea class="sp-textarea" id="sp-input" placeholder="Write your answer in English..."></textarea>
+        <button class="sp-submit" id="sp-submit" onclick="checkSP()">Verificar com IA ✦</button>
+        <div class="sp-aifb" id="sp-aifb"></div>
+      </div>
+      <div class="sp-nav">
+        <button class="sp-nav-btn" onclick="goSP(-1)">← Anterior</button>
+        <div class="sp-dots" id="sp-dots"></div>
+        <button class="sp-nav-btn" onclick="goSP(1)">Próxima →</button>
+      </div>
+    </div>
+
+    <!-- SHADOWING -->
+    <div class="screen" id="screen-sh">
+      <div class="prog-wrap">
+        <div class="prog-label"><span id="sh-prog-txt">Frase 1 de 10</span><span></span></div>
+        <div class="prog-bar"><div class="prog-fill" id="sh-prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="card">
+        <div class="sh-phrase" id="sh-phrase"></div>
+        <div class="sh-pt" id="sh-pt"></div>
+      </div>
+      <div class="card">
+        <button class="sh-listen-btn" onclick="shListen()">🔊 Ouvir a frase</button>
+        <button class="sh-record-btn" id="sh-rec-btn" onclick="shRecord()">🎙️ Gravar minha voz</button>
+        <div class="sh-transcript" id="sh-transcript"></div>
+        <button class="sh-check-btn" id="sh-check-btn" onclick="shCheckAI()">Verificar com IA ✦</button>
+        <div class="sp-aifb" id="sh-aifb"></div>
+        <div class="sh-tip" id="sh-tip">Ouça a frase, depois tente repetir em voz alta com a mesma pronúncia e ritmo.</div>
+      </div>
+      <div class="sp-nav">
+        <button class="sp-nav-btn" onclick="goSH(-1)">← Anterior</button>
+        <div class="sp-dots" id="sh-dots"></div>
+        <button class="sp-nav-btn" onclick="goSH(1)">Próxima →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const FLASHCARDS=[
+  {s:"I ___ a student.",a:"am",pt:"Eu sou estudante."},
+  {s:"She ___ to school every day.",a:"goes",pt:"Ela vai à escola todo dia."},
+  {s:"We ___ English at Talkers.",a:"study",pt:"Nós estudamos inglês na Talkers."},
+  {s:"They ___ in Brazil.",a:"live",pt:"Eles moram no Brasil."},
+  {s:"I ___ coffee every morning.",a:"drink",pt:"Eu bebo café toda manhã."},
+  {s:"He ___ a teacher.",a:"is",pt:"Ele é professor."},
+  {s:"You ___ very well!",a:"speak",pt:"Você fala muito bem!"},
+  {s:"My name ___ Patricia.",a:"is",pt:"Meu nome é Patrícia."},
+  {s:"We ___ tired today.",a:"are",pt:"Nós estamos cansados hoje."},
+  {s:"She ___ a book every week.",a:"reads",pt:"Ela lê um livro por semana."},
+  {s:"I ___ to music every night.",a:"listen",pt:"Eu ouço música toda noite."},
+  {s:"He ___ breakfast at 7am.",a:"has",pt:"Ele toma café às 7h."}
+];
+
+const EXERCISES=[
+  {q:"Complete: 'My name ___ João.'",opts:["am","is","are","be"],c:1,fb:"'Is' é usado com he, she, it e nomes próprios."},
+  {q:"Qual é a tradução de 'Good morning'?",opts:["Boa tarde","Boa noite","Bom dia","Olá"],c:2,fb:"Good morning = Bom dia. Good afternoon = Boa tarde. Good night = Boa noite."},
+  {q:"Complete: 'They ___ students.'",opts:["is","am","are","be"],c:2,fb:"'Are' é usado com you, we e they."},
+  {q:"Qual frase está correta?",opts:["I are happy.","She am a teacher.","He is my friend.","We is late."],c:2,fb:"'He is' está correto. Usamos 'is' com he, she e it."},
+  {q:"Como se diz 'Eu tenho 20 anos' em inglês?",opts:["I have 20 years.","I am 20 years old.","I is 20 years.","My age is 20 years."],c:1,fb:"Em inglês dizemos 'I am 20 years old', não 'I have 20 years' como em português."},
+  {q:"Complete: 'She ___ to the gym on Mondays.'",opts:["go","goes","going","is go"],c:1,fb:"Com he/she/it no presente simples, o verbo recebe -s ou -es: go → goes."},
+  {q:"O que significa 'eventually'?",opts:["Eventualmente","Com frequência","Por fim / no final","Raramente"],c:2,fb:"Atenção! 'Eventually' é um falso cognato: significa 'por fim' ou 'no final', não 'eventualmente'."},
+  {q:"Qual é a pergunta correta para saber a hora?",opts:["What time is?","What is the clock?","What time is it?","How much is the time?"],c:2,fb:"'What time is it?' é a forma correta de perguntar as horas em inglês."},
+  {q:"Complete: 'I ___ not like coffee.'",opts:["am","does","do","is"],c:2,fb:"Com I/you/we/they, usamos 'do not' (don't) para a negativa no presente simples."},
+  {q:"Qual é o plural correto de 'child'?",opts:["childs","childrens","children","child's"],c:2,fb:"'Child' tem plural irregular: children. Não se adiciona -s nesse caso."}
+];
+
+const SPEAKING=[
+  {task:"Apresente-se para um novo colega de classe.",ctx:"Diga seu nome, de onde você é e o que você faz.",prompt:"Introduce yourself to a new classmate. Say your name, where you're from and what you do.",scaffold:"My name is ... / I'm from ... / I'm a ..."},
+  {task:"Diga que horas são.",ctx:"São 3h15 da tarde.",prompt:"Tell someone the time. It is 3:15 PM.",scaffold:"It's quarter past three. / It's 3:15 in the afternoon."},
+  {task:"Descreva sua família.",ctx:"Fale sobre 2 ou 3 membros da sua família.",prompt:"Describe your family. Mention 2-3 members.",scaffold:"I have ... / My ... is ... / My ... are ..."},
+  {task:"Peça um café numa lanchonete.",ctx:"Você quer um café com leite e um croissant.",prompt:"Order at a café. Ask for a coffee with milk and a croissant.",scaffold:"I'd like ... please. / Can I have ... ?"},
+  {task:"Diga como está o tempo hoje.",ctx:"Está ensolarado e quente.",prompt:"Describe today's weather. It's sunny and hot.",scaffold:"Today it's sunny and hot. / The weather is ..."},
+  {task:"Explique sua rotina matinal.",ctx:"Acorda cedo, toma banho, toma café e vai trabalhar.",prompt:"Describe your morning routine.",scaffold:"I wake up ... / I take a shower / I have breakfast / I go to work ..."}
+];
+
+const SHADOWING=[
+  {en:"Hello! My name is Ana. Nice to meet you.",pt:"Olá! Meu nome é Ana. Prazer em conhecê-lo."},
+  {en:"I am from Brazil. I live in Farroupilha.",pt:"Eu sou do Brasil. Eu moro em Farroupilha."},
+  {en:"What time is it? It's three fifteen.",pt:"Que horas são? São três e quinze."},
+  {en:"I drink coffee every morning.",pt:"Eu tomo café toda manhã."},
+  {en:"She goes to school by bus.",pt:"Ela vai à escola de ônibus."},
+  {en:"We study English on Tuesdays and Thursdays.",pt:"Nós estudamos inglês às terças e quintas."},
+  {en:"Can I have a coffee with milk, please?",pt:"Posso tomar um café com leite, por favor?"},
+  {en:"Today is sunny and very hot.",pt:"Hoje está ensolarado e muito quente."},
+  {en:"I wake up at seven o'clock every day.",pt:"Eu acordo às sete horas todo dia."},
+  {en:"My family is very important to me.",pt:"Minha família é muito importante para mim."}
+];
+
+// ── AUTH ──────────────────────────────────────────────────────
+let currentUser=null;
+function getUsers(){return JSON.parse(localStorage.getItem('ts_users')||'{}');}
+function saveUsers(u){localStorage.setItem('ts_users',JSON.stringify(u));}
+function getProgress(email){return JSON.parse(localStorage.getItem('ts_prog_'+email)||'{}');}
+function saveProgress(data){if(currentUser)localStorage.setItem('ts_prog_'+currentUser.email,JSON.stringify(data));}
+
+function switchTab(t){
+  document.querySelectorAll('.auth-tab button').forEach((b,i)=>b.classList.toggle('active',(t==='login'&&i===0)||(t==='register'&&i===1)));
+  document.getElementById('login-form').style.display=t==='login'?'block':'none';
+  document.getElementById('register-form').style.display=t==='register'?'block':'none';
+  document.getElementById('auth-msg').textContent='';
+}
+
+function authMsg(msg,ok){const el=document.getElementById('auth-msg');el.textContent=msg;el.className='auth-msg'+(ok?' ok':'');}
+
+function doLogin(){
+  const email=document.getElementById('l-email').value.trim().toLowerCase();
+  const pass=document.getElementById('l-pass').value;
+  if(!email||!pass){authMsg('Preencha todos os campos.');return;}
+  const users=getUsers();
+  if(!users[email]){authMsg('Email não cadastrado.');return;}
+  if(users[email].pass!==btoa(pass)){authMsg('Senha incorreta.');return;}
+  currentUser={email,name:users[email].name};
+  startApp();
+}
+
+function doRegister(){
+  const name=document.getElementById('r-name').value.trim();
+  const email=document.getElementById('r-email').value.trim().toLowerCase();
+  const pass=document.getElementById('r-pass').value;
+  if(!name||!email||!pass){authMsg('Preencha todos os campos.');return;}
+  if(pass.length<6){authMsg('Senha precisa ter pelo menos 6 caracteres.');return;}
+  const users=getUsers();
+  if(users[email]){authMsg('Email já cadastrado.');return;}
+  users[email]={name,pass:btoa(pass)};
+  saveUsers(users);
+  authMsg('Conta criada! Faça login.',true);
+  switchTab('login');
+  document.getElementById('l-email').value=email;
+}
+
+function doLogout(){
+  currentUser=null;
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('l-pass').value='';
+}
+
+function startApp(){
+  document.getElementById('auth-screen').style.display='none';
+  const app=document.getElementById('app-screen');
+  app.style.display='flex';
+  document.getElementById('user-name-display').textContent=currentUser.name.split(' ')[0];
+  fcCur=0;fcScore={r:0,w:0};fcRevealed=false;fcMode='drag';
+  exCur=0;exScore=0;exAnswered=false;
+  spCur=0;spDone={};
+  shCur=0;shDone={};shRecorded={};
+  renderFC();renderEX();renderSP();renderSH();
+  loadKey();
+  showScreen('fc');
+}
+
+// ── SCREEN ────────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+}
+
+// ── AUDIO / TTS ───────────────────────────────────────────────
+function speak(text,rate=0.85){
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';u.rate=rate;u.pitch=1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+function speakWord(){const c=FLASHCARDS[fcCur];if(c)speak(c.a);}
+
+// ── FLASHCARDS ────────────────────────────────────────────────
+let fcCur=0,fcRevealed=false,fcScore={r:0,w:0},fcMode='drag';
+
+function setFCMode(m){
+  fcMode=m;
+  document.getElementById('mode-drag').classList.toggle('active',m==='drag');
+  document.getElementById('mode-type').classList.toggle('active',m==='type');
+  if(fcRevealed) buildFCInteract();
+}
+
+function renderFC(){
+  if(fcCur>=FLASHCARDS.length){showFCResult();return;}
+  const c=FLASHCARDS[fcCur];
+  const pct=Math.round(fcCur/FLASHCARDS.length*100);
+  document.getElementById('fc-prog-txt').textContent=`Carta ${fcCur+1} de ${FLASHCARDS.length}`;
+  document.getElementById('fc-score-txt').textContent=`✓ ${fcScore.r}  ✗ ${fcScore.w}`;
+  document.getElementById('fc-prog-fill').style.width=pct+'%';
+  // Show sentence with blank
+  const parts=c.s.split('___');
+  document.getElementById('fc-sentence').innerHTML=parts[0]+'<span class="fc-blank"></span>'+(parts[1]||'');
+  document.getElementById('fc-pt').textContent='';
+  document.getElementById('fc-pt').className='fc-pt';
+  document.getElementById('fc-tap').textContent='Toque para revelar';
+  document.getElementById('fc-interact').className='fc-interact';
+  document.getElementById('fc-answer-fb').className='fc-answer-fb';
+  document.getElementById('fc-answer-fb').textContent='';
+  document.getElementById('fc-next-btn').className='fc-next-btn';
+  document.getElementById('fc-flip').onclick=revealFC;
+  document.getElementById('fc-flip').style.cursor='pointer';
+  fcRevealed=false;
+}
+
+function revealFC(){
+  if(fcRevealed)return;
+  fcRevealed=true;
+  const c=FLASHCARDS[fcCur];
+  // Show translation on card
+  document.getElementById('fc-pt').textContent=c.pt;
+  document.getElementById('fc-pt').className='fc-pt show';
+  document.getElementById('fc-tap').textContent='';
+  document.getElementById('fc-flip').onclick=null;
+  document.getElementById('fc-flip').style.cursor='default';
+  // Show interaction
+  document.getElementById('fc-interact').className='fc-interact show';
+  speak(c.a);
+  buildFCInteract();
+}
+
+function buildFCInteract(){
+  const c=FLASHCARDS[fcCur];
+  const isDrag=fcMode==='drag';
+  document.getElementById('fc-drag-mode').style.display=isDrag?'block':'none';
+  document.getElementById('fc-type-mode').style.display=isDrag?'none':'block';
+  document.getElementById('fc-answer-fb').className='fc-answer-fb';
+  document.getElementById('fc-next-btn').className='fc-next-btn';
+  if(isDrag) buildDragFC(c);
+  else buildTypeFC(c);
+}
+
+function buildDragFC(c){
+  // Build sentence with drop zone
+  const parts=c.s.split('___');
+  const area=document.getElementById('fc-drag-sentence');
+  area.innerHTML='';
+  const before=document.createElement('span');before.textContent=parts[0];area.appendChild(before);
+  const drop=document.createElement('div');
+  drop.className='fc-drop-zone';drop.id='fc-drop';drop.textContent='';
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+  drop.addEventListener('drop',e=>{
+    e.preventDefault();drop.classList.remove('over');
+    const word=e.dataTransfer.getData('text');
+    checkDragFC(word,drop,c.a);
+  });
+  area.appendChild(drop);
+  if(parts[1]){const after=document.createElement('span');after.textContent=parts[1];area.appendChild(after);}
+  // Build word bank with distractors
+  const bank=document.getElementById('fc-word-bank');
+  bank.innerHTML='';
+  const words=getDistractors(c.a,FLASHCARDS.map(f=>f.a));
+  words.forEach(w=>{
+    const el=document.createElement('div');
+    el.className='fc-word';el.textContent=w;el.draggable=true;el.id='fc-word-'+w;
+    el.addEventListener('dragstart',e=>{e.dataTransfer.setData('text',w);el.classList.add('dragging');});
+    el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+    // Touch support
+    el.addEventListener('click',()=>{
+      const drop=document.getElementById('fc-drop');
+      if(!drop.dataset.filled) checkDragFC(w,drop,c.a);
+    });
+    bank.appendChild(el);
+  });
+}
+
+function checkDragFC(word,drop,answer){
+  if(drop.dataset.filled)return;
+  drop.dataset.filled='1';
+  drop.textContent=word;
+  // Mark used word
+  const wEl=document.getElementById('fc-word-'+word);
+  if(wEl)wEl.classList.add('used');
+  const correct=word.toLowerCase().trim()===answer.toLowerCase().trim();
+  drop.classList.add(correct?'correct':'wrong');
+  showFCFeedback(correct,answer);
+}
+
+function buildTypeFC(c){
+  const inp=document.getElementById('fc-type-input');
+  inp.value='';inp.className='fc-type-input';inp.disabled=false;
+  inp.placeholder='Digite: '+c.a.length+' letras';
+  setTimeout(()=>inp.focus(),100);
+}
+
+function checkTypeFC(){
+  const c=FLASHCARDS[fcCur];
+  const inp=document.getElementById('fc-type-input');
+  const val=inp.value.trim();
+  if(!val)return;
+  const correct=val.toLowerCase()===c.a.toLowerCase();
+  inp.className='fc-type-input '+(correct?'correct':'wrong');
+  inp.disabled=true;
+  showFCFeedback(correct,c.a);
+}
+
+function showFCFeedback(correct,answer){
+  const fb=document.getElementById('fc-answer-fb');
+  if(correct){
+    fb.className='fc-answer-fb show ok';
+    fb.textContent='✓ Correto!';
+    fcScore.r++;
+  } else {
+    fb.className='fc-answer-fb show fail';
+    fb.textContent=`✗ A resposta era: "${answer}"`;
+    fcScore.w++;
+  }
+  document.getElementById('fc-score-txt').textContent=`✓ ${fcScore.r}  ✗ ${fcScore.w}`;
+  document.getElementById('fc-next-btn').className='fc-next-btn show';
+}
+
+function nextFC(){fcCur++;renderFC();}
+
+function getDistractors(correct,allAnswers){
+  const others=allAnswers.filter(a=>a.toLowerCase()!==correct.toLowerCase());
+  const shuffled=others.sort(()=>Math.random()-.5).slice(0,3);
+  const result=[correct,...shuffled].sort(()=>Math.random()-.5);
+  return result;
+}
+
+function showFCResult(){
+  document.getElementById('fc-prog-fill').style.width='100%';
+  document.getElementById('fc-prog-txt').textContent='Concluído!';
+  document.querySelector('#screen-fc .card').style.display='none';
+  const pct=Math.round(fcScore.r/FLASHCARDS.length*100);
+  document.getElementById('fc-result').style.display='block';
+  document.getElementById('fc-result').innerHTML=`<div class="result-box"><div class="result-num">${pct}%</div><div class="result-label">${fcScore.r} de ${FLASHCARDS.length} acertos</div><button class="restart-btn" onclick="restartFC()">Recomeçar</button></div>`;
+}
+function restartFC(){
+  fcCur=0;fcScore={r:0,w:0};fcRevealed=false;
+  document.querySelector('#screen-fc .card').style.display='block';
+  document.getElementById('fc-result').style.display='none';
+  renderFC();
+}
+
+// ── EXERCISES ─────────────────────────────────────────────────
+let exCur=0,exScore=0,exAnswered=false;
+function renderEX(){
+  if(exCur>=EXERCISES.length){showEXResult();return;}
+  const q=EXERCISES[exCur];
+  const pct=Math.round(exCur/EXERCISES.length*100);
+  document.getElementById('ex-prog-txt').textContent=`Pergunta ${exCur+1} de ${EXERCISES.length}`;
+  document.getElementById('ex-prog-fill').style.width=pct+'%';
+  document.getElementById('ex-q').textContent=q.q;
+  const opts=document.getElementById('ex-opts');opts.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='ex-opt';b.textContent=o;b.onclick=()=>answerEX(i,b);
+    opts.appendChild(b);
+  });
+  document.getElementById('ex-fb').className='ex-fb';
+  document.getElementById('ex-fb').textContent='';
+  document.getElementById('ex-next').className='ex-next';
+  exAnswered=false;
+}
+function answerEX(i,btn){
+  if(exAnswered)return;exAnswered=true;
+  const q=EXERCISES[exCur];
+  document.querySelectorAll('.ex-opt').forEach(b=>b.disabled=true);
+  const fb=document.getElementById('ex-fb');
+  if(i===q.c){btn.classList.add('correct');fb.className='ex-fb show ok';fb.textContent='✓ Correto! '+q.fb;exScore++;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.ex-opt')[q.c].classList.add('correct');fb.className='ex-fb show fail';fb.textContent='✗ Ops! '+q.fb;}
+  const nxt=document.getElementById('ex-next');
+  nxt.textContent=exCur<EXERCISES.length-1?'Próxima pergunta →':'Ver resultado';
+  nxt.className='ex-next show';
+}
+function nextEX(){exCur++;renderEX();}
+function showEXResult(){
+  document.getElementById('ex-prog-fill').style.width='100%';
+  document.getElementById('ex-prog-txt').textContent='Concluído!';
+  document.getElementById('ex-card').style.display='none';
+  const pct=Math.round(exScore/EXERCISES.length*100);
+  document.getElementById('ex-result').style.display='block';
+  document.getElementById('ex-result').innerHTML=`<div class="result-box"><div class="result-num">${pct}%</div><div class="result-label">${exScore} de ${EXERCISES.length} corretas</div><button class="restart-btn" onclick="restartEX()">Recomeçar</button></div>`;
+}
+function restartEX(){
+  exCur=0;exScore=0;exAnswered=false;
+  document.getElementById('ex-card').style.display='block';
+  document.getElementById('ex-result').style.display='none';
+  renderEX();
+}
+
+// ── SPEAKING ──────────────────────────────────────────────────
+let spCur=0,spDone={};
+function renderSP(){
+  const c=SPEAKING[spCur];
+  const pct=Math.round((spCur/SPEAKING.length)*100)+8;
+  document.getElementById('sp-prog-txt').textContent=`Situação ${spCur+1} de ${SPEAKING.length}`;
+  document.getElementById('sp-prog-fill').style.width=pct+'%';
+  document.getElementById('sp-task').textContent=c.task;
+  document.getElementById('sp-ctx').textContent=c.ctx;
+  document.getElementById('sp-input').value='';
+  document.getElementById('sp-aifb').className='sp-aifb';
+  document.getElementById('sp-aifb').innerHTML='';
+  document.getElementById('sp-submit').disabled=false;
+  buildDots('sp-dots',SPEAKING.length,spCur,spDone);
+}
+const GEMINI_KEY = window._GEMINI_KEY || '';
+async function askAI(prompt) {
+  const key = document.getElementById('gemini-key-input') ? document.getElementById('gemini-key-input').value.trim() : GEMINI_KEY;
+  if (!key) throw new Error('NO_KEY');
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.candidates[0].content.parts[0].text;
+}
+
+async function checkSP(){
+  const txt=document.getElementById('sp-input').value.trim();
+  if(!txt)return;
+  const fb=document.getElementById('sp-aifb');
+  fb.className='sp-aifb show mid';
+  fb.innerHTML='<div class="loading">✦ A IA está analisando sua resposta...</div>';
+  document.getElementById('sp-submit').disabled=true;
+  const c=SPEAKING[spCur];
+  const msg=`You are an English teacher for Brazilian beginners (A1-A2 level).
+Analyze the student's written English response and give encouraging feedback.
+
+Task given: ${c.prompt}
+Expected structure hint: ${c.scaffold}
+Student wrote: "${txt}"
+
+Respond ONLY with valid JSON, no markdown, no extra text:
+{"score":"high|mid|low","score_label":"Muito bom!|Bom trabalho!|Continue praticando!","feedback_pt":"2-3 sentences in Portuguese: specifically praise what is correct, kindly point out any errors, encourage","feedback_en":"1 sentence in English with the single most important tip or praise","corrected":"The ideal English answer for this task (1-3 sentences)"}`;
+  try{
+    const raw = await askAI(msg);
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const d=JSON.parse(clean);
+    spDone[spCur]=d.score;
+    buildDots('sp-dots',SPEAKING.length,spCur,spDone);
+    const cls=d.score==='high'?'good':d.score==='mid'?'mid':'bad';
+    const pc=d.score==='high'?'high':d.score==='mid'?'mid':'low';
+    fb.className='sp-aifb show '+cls;
+    fb.innerHTML=`<span class="sp-pill ${pc}">${d.score_label}</span>
+<div class="sp-section"><div class="sp-section-lbl pt">Feedback em português</div>${d.feedback_pt}</div>
+${d.corrected?`<div class="sp-corr"><div class="sp-corr-lbl">Versão ideal</div><em>${d.corrected}</em></div>`:''}
+<hr style="border:none;border-top:1px solid rgba(0,0,0,.08);margin:.5rem 0">
+<div class="sp-section"><div class="sp-section-lbl en">In English</div><em style="color:var(--text2)">${d.feedback_en}</em></div>`;
+  }catch(e){
+    fb.className='sp-aifb show mid';
+    fb.innerHTML = e.message === 'NO_KEY'
+      ? '<strong>Cole sua chave Gemini no campo acima.</strong>'
+      : '<strong>Erro de conexão.</strong> Verifique sua internet e tente novamente.';
+  }
+  document.getElementById('sp-submit').disabled=false;
+}
+function goSP(d){const n=spCur+d;if(n>=0&&n<SPEAKING.length){spCur=n;renderSP();}}
+
+// ── SHADOWING ─────────────────────────────────────────────────
+let shCur=0,shDone={},shRecorded={};
+let recognition=null,isRecording=false;
+
+function renderSH(){
+  const c=SHADOWING[shCur];
+  const pct=Math.round(shCur/SHADOWING.length*100);
+  document.getElementById('sh-prog-txt').textContent=`Frase ${shCur+1} de ${SHADOWING.length}`;
+  document.getElementById('sh-prog-fill').style.width=pct+'%';
+  document.getElementById('sh-phrase').textContent=c.en;
+  document.getElementById('sh-pt').textContent=c.pt;
+  document.getElementById('sh-transcript').className='sh-transcript';
+  document.getElementById('sh-transcript').textContent='';
+  document.getElementById('sh-check-btn').className='sh-check-btn';
+  document.getElementById('sh-aifb').className='sp-aifb';
+  document.getElementById('sh-aifb').innerHTML='';
+  const rb=document.getElementById('sh-rec-btn');
+  rb.className='sh-record-btn';
+  rb.textContent='🎙️ Gravar minha voz';
+  document.getElementById('sh-tip').textContent='Ouça a frase, depois tente repetir em voz alta com a mesma pronúncia e ritmo.';
+  shRecorded[shCur]=null;isRecording=false;
+  buildDots('sh-dots',SHADOWING.length,shCur,shDone);
+}
+
+function shListen(){speak(SHADOWING[shCur].en,0.8);}
+
+function shRecord(){
+  if(isRecording){stopRecording();return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    document.getElementById('sh-tip').textContent='Seu navegador não suporta gravação de voz. Tente no Chrome.';
+    return;
+  }
+  recognition=new SR();
+  recognition.lang='en-US';recognition.interimResults=false;recognition.maxAlternatives=1;
+  recognition.onresult=e=>{
+    const transcript=e.results[0][0].transcript;
+    shRecorded[shCur]=transcript;
+    const tr=document.getElementById('sh-transcript');
+    tr.textContent='Você disse: "'+transcript+'"';
+    tr.className='sh-transcript show';
+    document.getElementById('sh-check-btn').className='sh-check-btn show';
+    document.getElementById('sh-tip').textContent='Boa! Agora clique em "Verificar com IA" para receber seu feedback.';
+  };
+  recognition.onerror=()=>{
+    stopRecording();
+    document.getElementById('sh-tip').textContent='Não foi possível capturar. Fale mais alto e tente novamente.';
+  };
+  recognition.onend=()=>stopRecording();
+  recognition.start();
+  isRecording=true;
+  const rb=document.getElementById('sh-rec-btn');
+  rb.className='sh-record-btn recording';
+  rb.textContent='⏹ Parar gravação';
+}
+function stopRecording(){
+  if(recognition)try{recognition.stop();}catch(e){}
+  isRecording=false;
+  const rb=document.getElementById('sh-rec-btn');
+  rb.className='sh-record-btn';
+  rb.textContent='🎙️ Gravar minha voz';
+}
+
+async function shCheckAI(){
+  const spoken=shRecorded[shCur];
+  if(!spoken)return;
+  const fb=document.getElementById('sh-aifb');
+  fb.className='sp-aifb show mid';
+  fb.innerHTML='<div class="loading">✦ A IA está analisando sua pronúncia...</div>';
+  document.getElementById('sh-check-btn').disabled=true;
+  const target=SHADOWING[shCur].en;
+  const msg=`You are an English pronunciation coach for Brazilian beginners (A1-A2).
+The student was supposed to repeat this sentence: "${target}"
+The speech recognition captured what they said: "${spoken}"
+
+Compare them and give pronunciation feedback.
+Respond ONLY with valid JSON, no markdown:
+{"score":"high|mid|low","score_label":"Muito bom!|Bom trabalho!|Continue praticando!","feedback_pt":"2-3 sentences in Portuguese: what they got right, what to improve in pronunciation/rhythm, encouragement","feedback_en":"1 tip in English about pronunciation or intonation","corrected":"Repeat the target sentence with stress marks like THIS for emphasis"}`;
+  try{
+    const raw = await askAI(msg);
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const d=JSON.parse(clean);
+    shDone[shCur]=d.score;
+    buildDots('sh-dots',SHADOWING.length,shCur,shDone);
+    const cls=d.score==='high'?'good':d.score==='mid'?'mid':'bad';
+    const pc=d.score==='high'?'high':d.score==='mid'?'mid':'low';
+    fb.className='sp-aifb show '+cls;
+    fb.innerHTML=`<span class="sp-pill ${pc}">${d.score_label}</span>
+<div class="sp-section"><div class="sp-section-lbl pt">Feedback em português</div>${d.feedback_pt}</div>
+${d.corrected?`<div class="sp-corr"><div class="sp-corr-lbl">Frase com ênfase</div><em>${d.corrected}</em></div>`:''}
+<hr style="border:none;border-top:1px solid rgba(0,0,0,.08);margin:.5rem 0">
+<div class="sp-section"><div class="sp-section-lbl en">Pronunciation tip</div><em style="color:var(--text2)">${d.feedback_en}</em></div>`;
+  }catch(e){
+    fb.className='sp-aifb show mid';
+    fb.innerHTML = e.message === 'NO_KEY'
+      ? '<strong>Cole sua chave Gemini nas configurações acima.</strong>'
+      : '<strong>Erro de conexão.</strong> Verifique sua internet e tente novamente.';
+  }
+  document.getElementById('sh-check-btn').disabled=false;
+}
+function goSH(d){const n=shCur+d;if(n>=0&&n<SHADOWING.length){shCur=n;renderSH();}}
+
+// ── DOTS ──────────────────────────────────────────────────────
+function buildDots(id,total,cur,done){
+  const el=document.getElementById(id);el.innerHTML='';
+  for(let i=0;i<total;i++){
+    const d=document.createElement('div');
+    let cls='sp-dot';
+    if(i===cur)cls+=' cur';
+    else if(done[i]==='high')cls+=' hi';
+    else if(done[i]==='mid')cls+=' mi';
+    else if(done[i]==='low')cls+=' lo';
+    d.className=cls;el.appendChild(d);
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+function saveKey(){
+  const k=document.getElementById('gemini-key-input').value.trim();
+  if(k){localStorage.setItem('ts_gk',k);alert('Chave salva!');}
+}
+function loadKey(){
+  const k=localStorage.getItem('ts_gk');
+  if(k)document.getElementById('gemini-key-input').value=k;
+}
+
+// Check saved session
+const saved=localStorage.getItem('ts_session');
+if(saved){
+  currentUser=JSON.parse(saved);
+  startApp();
+} else {
+  document.getElementById('auth-screen').style.display='flex';
+}
+
+// Save session on login
+const _startApp=startApp;
+startApp=function(){
+  if(currentUser)localStorage.setItem('ts_session',JSON.stringify(currentUser));
+  _startApp();
+};
+doLogout=function(){
+  currentUser=null;
+  localStorage.removeItem('ts_session');
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('l-pass').value='';
+};
+</script>
+</body>
+</html>
