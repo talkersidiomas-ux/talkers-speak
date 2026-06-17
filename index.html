@@ -221,7 +221,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="logout-btn" onclick="doLogout()">Sair</button>
     </div>
   </div>
-
   <div class="content">
     <div class="nav">
       <button class="nav-btn active" onclick="showScreen('fc')" id="nav-fc"><span class="nav-icon">🃏</span>Flashcards</button>
@@ -448,7 +447,6 @@ function startApp(){
   spCur=0;spDone={};
   shCur=0;shDone={};shRecorded={};
   renderFC();renderEX();renderSP();renderSH();
-  loadKey();
   showScreen('fc');
 }
 
@@ -694,20 +692,6 @@ function renderSP(){
   document.getElementById('sp-submit').disabled=false;
   buildDots('sp-dots',SPEAKING.length,spCur,spDone);
 }
-const GEMINI_KEY = window._GEMINI_KEY || '';
-async function askAI(prompt) {
-  const key = document.getElementById('gemini-key-input') ? document.getElementById('gemini-key-input').value.trim() : GEMINI_KEY;
-  if (!key) throw new Error('NO_KEY');
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data.candidates[0].content.parts[0].text;
-}
-
 async function checkSP(){
   const txt=document.getElementById('sp-input').value.trim();
   if(!txt)return;
@@ -726,9 +710,10 @@ Student wrote: "${txt}"
 Respond ONLY with valid JSON, no markdown, no extra text:
 {"score":"high|mid|low","score_label":"Muito bom!|Bom trabalho!|Continue praticando!","feedback_pt":"2-3 sentences in Portuguese: specifically praise what is correct, kindly point out any errors, encourage","feedback_en":"1 sentence in English with the single most important tip or praise","corrected":"The ideal English answer for this task (1-3 sentences)"}`;
   try{
-    const raw = await askAI(msg);
-    const clean = raw.replace(/```json|```/g,'').trim();
-    const d=JSON.parse(clean);
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:msg}]})});
+    const data=await res.json();
+    const raw=data.content[0].text.replace(/```json|```/g,'').trim();
+    const d=JSON.parse(raw);
     spDone[spCur]=d.score;
     buildDots('sp-dots',SPEAKING.length,spCur,spDone);
     const cls=d.score==='high'?'good':d.score==='mid'?'mid':'bad';
@@ -741,9 +726,7 @@ ${d.corrected?`<div class="sp-corr"><div class="sp-corr-lbl">Versão ideal</div>
 <div class="sp-section"><div class="sp-section-lbl en">In English</div><em style="color:var(--text2)">${d.feedback_en}</em></div>`;
   }catch(e){
     fb.className='sp-aifb show mid';
-    fb.innerHTML = e.message === 'NO_KEY'
-      ? '<strong>Cole sua chave Gemini no campo acima.</strong>'
-      : '<strong>Erro de conexão.</strong> Verifique sua internet e tente novamente.';
+    fb.innerHTML='<strong>Erro de conexão.</strong> Verifique sua internet e tente novamente.';
   }
   document.getElementById('sp-submit').disabled=false;
 }
@@ -828,9 +811,10 @@ Compare them and give pronunciation feedback.
 Respond ONLY with valid JSON, no markdown:
 {"score":"high|mid|low","score_label":"Muito bom!|Bom trabalho!|Continue praticando!","feedback_pt":"2-3 sentences in Portuguese: what they got right, what to improve in pronunciation/rhythm, encouragement","feedback_en":"1 tip in English about pronunciation or intonation","corrected":"Repeat the target sentence with stress marks like THIS for emphasis"}`;
   try{
-    const raw = await askAI(msg);
-    const clean = raw.replace(/```json|```/g,'').trim();
-    const d=JSON.parse(clean);
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,messages:[{role:'user',content:msg}]})});
+    const data=await res.json();
+    const raw=data.content[0].text.replace(/```json|```/g,'').trim();
+    const d=JSON.parse(raw);
     shDone[shCur]=d.score;
     buildDots('sh-dots',SHADOWING.length,shCur,shDone);
     const cls=d.score==='high'?'good':d.score==='mid'?'mid':'bad';
@@ -843,9 +827,7 @@ ${d.corrected?`<div class="sp-corr"><div class="sp-corr-lbl">Frase com ênfase</
 <div class="sp-section"><div class="sp-section-lbl en">Pronunciation tip</div><em style="color:var(--text2)">${d.feedback_en}</em></div>`;
   }catch(e){
     fb.className='sp-aifb show mid';
-    fb.innerHTML = e.message === 'NO_KEY'
-      ? '<strong>Cole sua chave Gemini nas configurações acima.</strong>'
-      : '<strong>Erro de conexão.</strong> Verifique sua internet e tente novamente.';
+    fb.innerHTML='<strong>Erro de conexão.</strong> Verifique sua internet e tente novamente.';
   }
   document.getElementById('sh-check-btn').disabled=false;
 }
@@ -866,15 +848,6 @@ function buildDots(id,total,cur,done){
 }
 
 // ── INIT ──────────────────────────────────────────────────────
-function saveKey(){
-  const k=document.getElementById('gemini-key-input').value.trim();
-  if(k){localStorage.setItem('ts_gk',k);alert('Chave salva!');}
-}
-function loadKey(){
-  const k=localStorage.getItem('ts_gk');
-  if(k)document.getElementById('gemini-key-input').value=k;
-}
-
 // Check saved session
 const saved=localStorage.getItem('ts_session');
 if(saved){
